@@ -1,3 +1,4 @@
+cat > src/components/products/BarcodeLabel.jsx << 'EOF'
 import { forwardRef, useEffect, useRef } from 'react';
 import JsBarcode from 'jsbarcode';
 
@@ -52,3 +53,4 @@ const BarcodeLabel = forwardRef(({ product, size = 'small' }, ref) => {
 BarcodeLabel.displayName = 'BarcodeLabel';
 
 export default BarcodeLabel;
+EOF
