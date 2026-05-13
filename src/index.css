@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@theme {
+  --color-rosa: #FFD6E8;
+  --color-cielo: #DDF4FF;
+  --color-lila: #E8D9FF;
+  --color-amarillo: #FFF4C2;
+  --color-menta: #DDFBE6;
+  --color-blanco: #FFFFFF;
+  --color-rosa-oscuro: #E8A0BF;
+  --color-texto-suave: #5A4A5C;
+}
+@layer components {
+  .input-pastel {
+    @apply w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:border-rosa-oscuro outline-none text-texto-suave;
+  }
+}
