@@ -31,7 +31,7 @@ export default function Products() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState('grouped');
+  const [viewMode, setViewMode] = useState('grouped'); // 'categories' | 'grouped'
   const [selectedCategory, setSelectedCategory] = useState(null);
 
   // Modal de producto (crear/editar)
@@ -174,6 +174,7 @@ export default function Products() {
 
   const filtered = getFilteredProducts();
 
+  // Para vista agrupada: productos ordenados por categoría y nombre
   const grouped = [...filtered].sort((a, b) => {
     const catA = (a.category || '').toLowerCase();
     const catB = (b.category || '').toLowerCase();
@@ -181,6 +182,7 @@ export default function Products() {
     return (a.name || '').localeCompare(b.name || '');
   });
 
+  // Agrupar por categoría
   const groupedByCategory = {};
   grouped.forEach(p => {
     const cat = p.category || 'Sin categoría';
@@ -188,6 +190,7 @@ export default function Products() {
     groupedByCategory[cat].push(p);
   });
 
+  // Categorías disponibles (las que tienen productos)
   const availableCategories = [...new Set(products.map(p => p.category).filter(Boolean))].sort();
 
   return (
@@ -273,6 +276,7 @@ export default function Products() {
         </div>
       )}
 
+      {/* Botón regresar en vista categorías */}
       {viewMode === 'categories' && selectedCategory && (
         <button
           onClick={() => setSelectedCategory(null)}
@@ -284,6 +288,7 @@ export default function Products() {
 
       {/* Tabla de productos (vista agrupada o categorías con filtro) */}
       {viewMode === 'grouped' ? (
+        /* Vista agrupada por categoría */
         <div className="space-y-6">
           {Object.keys(groupedByCategory).length === 0 ? (
             <div className="bg-white rounded-2xl shadow-sm border border-rosa/20 p-8 text-center text-gray-400">
@@ -340,6 +345,7 @@ export default function Products() {
           )}
         </div>
       ) : (
+        /* Vista normal o con categoría seleccionada (tabla plana) */
         <div className="bg-white rounded-2xl shadow-sm overflow-x-auto border border-rosa/20">
           <table className="min-w-full text-texto-suave text-sm">
             <thead className="bg-rosa/10">
@@ -387,8 +393,6 @@ export default function Products() {
       )}
 
       {/* ========== MODALES ========== */}
-
-      {/* Modal de producto (crear/editar) */}
       {showProductModal && (
         <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 pt-[10vh]">
           <div className="bg-white rounded-2xl w-full max-w-2xl shadow-lg animate-in max-h-[80vh] overflow-y-auto">
@@ -419,7 +423,6 @@ export default function Products() {
         </div>
       )}
 
-      {/* Modal de ajuste de inventario */}
       {showInventoryModal && (
         <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 pt-[15vh]">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-lg animate-in">
@@ -457,7 +460,6 @@ export default function Products() {
         </div>
       )}
 
-      {/* Modal de impresión de inventario */}
       {showInventoryPrint && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
