@@ -6,9 +6,8 @@ import {
   updateProduct,
   deleteProduct,
 } from '../services/products';
-import { Search, Plus, Pencil, Trash2, Package, X, ArrowUpDown, Printer, Grid3x3, List, Tag } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, Package, X, ArrowUpDown, Printer, Grid3x3, List } from 'lucide-react';
 import InventoryPrint from '../components/products/InventoryPrint';
-import BarcodeLabel from '../components/products/BarcodeLabel';
 
 const CATEGORIES = [
   'globos', 'arreglos', 'peluches', 'regalos', 'decoraciones',
@@ -51,12 +50,6 @@ export default function Products() {
   const [printOrientation, setPrintOrientation] = useState('portrait');
   const inventoryRef = useRef();
 
-  // Modal de etiqueta
-  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
-  const [barcodeProduct, setBarcodeProduct] = useState(null);
-  const [barcodeSize, setBarcodeSize] = useState('small');
-  const barcodeRef = useRef();
-
   useEffect(() => { loadProducts(); }, []);
 
   const loadProducts = async () => {
@@ -80,12 +73,6 @@ export default function Products() {
     const catB = (b.category || '').toLowerCase();
     if (catA !== catB) return catA.localeCompare(catB);
     return (a.name || '').localeCompare(b.name || '');
-  });
-
-  // ---------------- Impresión de etiqueta ----------------
-  const handlePrintBarcode = useReactToPrint({
-    contentRef: barcodeRef,
-    documentTitle: `Etiqueta_${barcodeProduct?.sku || 'producto'}`,
   });
 
   // ---------------- Lógica de producto (crear/editar) ----------------
@@ -341,7 +328,6 @@ export default function Products() {
                           <div className="flex items-center gap-2">
                             <button onClick={() => openEditModal(p)} className="p-1.5 rounded-lg hover:bg-rosa/10 text-rosa-oscuro transition-colors" title="Editar"><Pencil size={16} /></button>
                             <button onClick={() => openInventoryModal(p)} className="p-1.5 rounded-lg hover:bg-rosa/10 text-texto-suave transition-colors" title="Ajustar inventario"><ArrowUpDown size={16} /></button>
-                            <button onClick={() => { setBarcodeProduct(p); setShowBarcodeModal(true); }} className="p-1.5 rounded-lg hover:bg-rosa/10 text-texto-suave transition-colors" title="Imprimir etiqueta"><Tag size={16} /></button>
                             <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition-colors" title="Eliminar"><Trash2 size={16} /></button>
                           </div>
                         </td>
@@ -389,7 +375,6 @@ export default function Products() {
                       <div className="flex items-center gap-2">
                         <button onClick={() => openEditModal(p)} className="p-1.5 rounded-lg hover:bg-rosa/10 text-rosa-oscuro transition-colors" title="Editar"><Pencil size={16} /></button>
                         <button onClick={() => openInventoryModal(p)} className="p-1.5 rounded-lg hover:bg-rosa/10 text-texto-suave transition-colors" title="Ajustar inventario"><ArrowUpDown size={16} /></button>
-                        <button onClick={() => { setBarcodeProduct(p); setShowBarcodeModal(true); }} className="p-1.5 rounded-lg hover:bg-rosa/10 text-texto-suave transition-colors" title="Imprimir etiqueta"><Tag size={16} /></button>
                         <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition-colors" title="Eliminar"><Trash2 size={16} /></button>
                       </div>
                     </td>
@@ -488,30 +473,6 @@ export default function Products() {
             </div>
             <div className="bg-gray-100 p-4 rounded-xl flex justify-center overflow-x-auto">
               <InventoryPrint ref={inventoryRef} products={sortedForPrint} orientation={printOrientation} />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de etiqueta de código de barras */}
-      {showBarcodeModal && barcodeProduct && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-lg">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-texto-suave flex items-center gap-2"><Tag size={20} /> Etiqueta</h3>
-              <button onClick={() => setShowBarcodeModal(false)} className="text-texto-suave hover:text-rosa-oscuro"><X size={24} /></button>
-            </div>
-            <div className="flex justify-center mb-4">
-              <BarcodeLabel ref={barcodeRef} product={barcodeProduct} size={barcodeSize} />
-            </div>
-            <div className="flex items-center gap-3">
-              <select value={barcodeSize} onChange={(e) => setBarcodeSize(e.target.value)} className="text-sm border rounded-lg px-2 py-1 flex-1">
-                <option value="small">Pequeña (50mm)</option>
-                <option value="medium">Mediana (70mm)</option>
-              </select>
-              <button onClick={handlePrintBarcode} className="bg-rosa-oscuro text-white px-4 py-2 rounded-full text-sm flex items-center gap-1">
-                <Printer size={16} /> Imprimir
-              </button>
             </div>
           </div>
         </div>
