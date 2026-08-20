@@ -172,6 +172,9 @@ export default function Reports() {
   const [selectedSale, setSelectedSale] = useState(null);
   const [showTicket, setShowTicket] = useState(false);
 
+  // Nueva: fecha seleccionada para reimprimir tickets
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
+
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
@@ -237,6 +240,9 @@ export default function Reports() {
   const monthSales = sales.filter(s => s.dateStr?.startsWith(currentMonth));
   const monthTotal = monthSales.reduce((sum, s) => sum + (parseFloat(s.total) || 0), 0);
   const monthProfit = monthSales.reduce((sum, s) => sum + calcProfit(s), 0);
+
+  // Nueva: ventas de la fecha seleccionada (para reimprimir)
+  const selectedSales = sales.filter(s => s.dateStr === selectedDate);
 
   // Historial mensual (ventas diarias con ganancia)
   const dailyTotals = {};
@@ -374,13 +380,22 @@ export default function Reports() {
           </div>
         </div>
 
+        {/* NUEVA SECCIÓN: Reimprimir tickets con selector de fecha */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-rosa/20">
           <h3 className="text-lg font-bold text-texto-suave mb-4 flex items-center gap-2"><RefreshCw size={20} /> Reimprimir tickets</h3>
-          {todaySales.length === 0 ? (
-            <p className="text-gray-400 text-sm">No hay ventas hoy</p>
+
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="input-pastel mb-4"
+          />
+
+          {selectedSales.length === 0 ? (
+            <p className="text-gray-400 text-sm">No hay ventas en esta fecha</p>
           ) : (
             <div className="space-y-2 max-h-80 overflow-y-auto">
-              {todaySales.map(sale => (
+              {selectedSales.map(sale => (
                 <div key={sale.id} className="flex justify-between items-center p-2 bg-rosa/5 rounded-lg text-sm">
                   <div>
                     <p className="font-medium">#{sale.ticketNumber || 'N/A'}</p>
