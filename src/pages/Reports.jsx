@@ -24,7 +24,6 @@ const toDateString = (value) => {
   return `${year}-${month}-${day}`;
 };
 
-// Helpers de formato
 const formatCurrency = (amount) => `$${Number(amount).toFixed(2)}`;
 
 // Componente del ticket del corte del día con ganancias
@@ -34,7 +33,6 @@ const CutTicket = forwardRef(({ sales, date, productsMap }, ref) => {
   let totalGeneral = 0;
   let totalGanancia = 0;
 
-  // Calcular ganancia por venta
   const salesWithProfit = sales.map(sale => {
     const total = parseFloat(sale.total) || 0;
     let ganancia = 0;
@@ -172,8 +170,8 @@ export default function Reports() {
   const [selectedSale, setSelectedSale] = useState(null);
   const [showTicket, setShowTicket] = useState(false);
 
-  // Nueva: fecha seleccionada para reimprimir tickets
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
 
   useEffect(() => { loadData(); }, []);
 
@@ -213,7 +211,6 @@ export default function Reports() {
   const today = new Date().toISOString().slice(0, 10);
   const currentMonth = today.slice(0, 7);
 
-  // Función para calcular ganancia de una venta
   const calcProfit = (sale) => {
     let ganancia = 0;
     (sale.items || []).forEach(item => {
@@ -224,7 +221,6 @@ export default function Reports() {
     return ganancia;
   };
 
-  // Ventas del día
   const todaySales = sales.filter(s => s.dateStr === today);
   const todayTotal = todaySales.reduce((sum, s) => sum + (parseFloat(s.total) || 0), 0);
   const todayCount = todaySales.length;
@@ -236,30 +232,53 @@ export default function Reports() {
     return acc;
   }, {});
 
-  // Ventas del mes
   const monthSales = sales.filter(s => s.dateStr?.startsWith(currentMonth));
   const monthTotal = monthSales.reduce((sum, s) => sum + (parseFloat(s.total) || 0), 0);
   const monthProfit = monthSales.reduce((sum, s) => sum + calcProfit(s), 0);
 
-  // Nueva: ventas de la fecha seleccionada (para reimprimir)
   const selectedSales = sales.filter(s => s.dateStr === selectedDate);
 
-  // Historial mensual (ventas diarias con ganancia)
-  const dailyTotals = {};
-  monthSales.forEach(s => {
+  // Ventas del mes seleccionado
+  const selectedMonthSales = sales.filter(s => s.dateStr?.startsWith(selectedMonth));
+  const selectedMonthTotal = selectedMonthSales.reduce((sum, s) => sum + (parseFloat(s.total) || 0), 0);
+  const selectedMonthProfit = selectedMonthSales.reduce((sum, s) => sum + calcProfit(s), 0);
+
+  const selectedMonthDailyTotals = {};
+  selectedMonthSales.forEach(s => {
     const day = s.dateStr;
-    if (!dailyTotals[day]) dailyTotals[day] = { total: 0, count: 0, ganancia: 0 };
-    dailyTotals[day].total += parseFloat(s.total) || 0;
-    dailyTotals[day].count += 1;
-    dailyTotals[day].ganancia += calcProfit(s);
+    if (!selectedMonthDailyTotals[day]) selectedMonthDailyTotals[day] = { total: 0, count: 0, ganancia: 0 };
+    selectedMonthDailyTotals[day].total += parseFloat(s.total) || 0;
+    selectedMonthDailyTotals[day].count += 1;
+    selectedMonthDailyTotals[day].ganancia += calcProfit(s);
   });
-  const dailyArray = Object.entries(dailyTotals)
+  const selectedMonthDailyArray = Object.entries(selectedMonthDailyTotals)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([day, values]) => ({ day, ...values }));
 
-  // Top productos más vendidos del mes (con ganancia)
+  const selectedMonthName = new Date(selectedMonth + '-01T00:00:00').toLocaleDateString('es-MX', { year: 'numeric', month: 'long' });
+
+  // Meses disponibles (desde primera venta hasta mes actual)
+  const availableMonths = [];
+  const allDates = sales.map(s => s.dateStr).filter(Boolean).sort();
+  if (allDates.length > 0) {
+    const firstDate = new Date(allDates[0] + 'T00:00:00');
+    const lastDate = new Date();
+    const start = new Date(firstDate.getFullYear(), firstDate.getMonth(), 1);
+    const end = new Date(lastDate.getFullYear(), lastDate.getMonth(), 1);
+    const loopDate = new Date(start);
+    while (loopDate <= end) {
+      const value = `${loopDate.getFullYear()}-${String(loopDate.getMonth() + 1).padStart(2, '0')}`;
+      availableMonths.push({
+        value,
+        label: loopDate.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }),
+      });
+      loopDate.setMonth(loopDate.getMonth() + 1);
+    }
+  }
+
+  // Productos más vendidos del mes seleccionado
   const productSales = {};
-  monthSales.forEach(sale => {
+  selectedMonthSales.forEach(sale => {
     (sale.items || []).forEach(item => {
       const key = item.name || item.productId;
       if (!productSales[key]) productSales[key] = { name: key, quantity: 0, total: 0, ganancia: 0 };
@@ -275,13 +294,11 @@ export default function Reports() {
     .slice(0, 10);
   const maxQty = topProducts.length > 0 ? Math.max(...topProducts.map(p => p.quantity)) : 1;
 
-  // Pedidos activos
   const activeOrders = orders.filter(o => o.status === 'pendiente' || o.status === 'en proceso');
   const eventCounts = {};
   activeOrders.forEach(o => { const t = o.eventType || 'otro'; eventCounts[t] = (eventCounts[t] || 0) + 1; });
   const pieData = Object.entries(eventCounts).map(([name, value]) => ({ name, value }));
 
-  // Sugerencias de clientes
   const twoMonthsAgo = new Date();
   twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
   const recentClientIds = new Set(
@@ -290,8 +307,6 @@ export default function Reports() {
   const suggestedClients = clients.filter(c => !recentClientIds.has(c.id)).slice(0, 5);
 
   const lowStock = products.filter(p => p.stock <= (p.minStock || 5));
-
-  const monthName = new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long' });
 
   if (loading) return <div className="text-center py-20 text-texto-suave text-xl">🎈 Cargando reportes...</div>;
 
@@ -380,17 +395,15 @@ export default function Reports() {
           </div>
         </div>
 
-        {/* NUEVA SECCIÓN: Reimprimir tickets con selector de fecha */}
+        {/* Reimprimir tickets con selector de fecha */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-rosa/20">
           <h3 className="text-lg font-bold text-texto-suave mb-4 flex items-center gap-2"><RefreshCw size={20} /> Reimprimir tickets</h3>
-
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
             className="input-pastel mb-4"
           />
-
           {selectedSales.length === 0 ? (
             <p className="text-gray-400 text-sm">No hay ventas en esta fecha</p>
           ) : (
@@ -414,15 +427,26 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* Historial mensual + Top productos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-rosa/20">
-          <h3 className="text-lg font-bold text-texto-suave mb-4 flex items-center gap-2"><Calendar size={20} /> Historial mensual</h3>
-          {dailyArray.length === 0 ? (
-            <p className="text-gray-400 text-sm">No hay ventas este mes</p>
-          ) : (
-            <div className="space-y-2 max-h-80 overflow-y-auto">
-              {dailyArray.map(day => (
+      {/* Corte mensual con selector de 12 meses */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-rosa/20">
+        <h3 className="text-lg font-bold text-texto-suave mb-4 flex items-center gap-2"><Calendar size={20} /> Corte mensual</h3>
+
+        <select
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.target.value)}
+          className="input-pastel mb-4 max-w-xs"
+        >
+          {availableMonths.map(m => (
+            <option key={m.value} value={m.value}>{m.label}</option>
+          ))}
+        </select>
+
+        {selectedMonthDailyArray.length === 0 ? (
+          <p className="text-gray-400 text-sm">No hay ventas en este mes</p>
+        ) : (
+          <>
+            <div className="space-y-2 max-h-80 overflow-y-auto mb-4">
+              {selectedMonthDailyArray.map(day => (
                 <div key={day.day} className="flex justify-between items-center p-2 bg-rosa/5 rounded-lg text-sm">
                   <span className="font-medium w-28">{new Date(day.day + 'T00:00:00').toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })}</span>
                   <span className="text-xs text-gray-500 w-16 text-center">{day.count} ventas</span>
@@ -431,49 +455,56 @@ export default function Reports() {
                 </div>
               ))}
             </div>
-          )}
-          <div className="mt-4 space-y-2 border-t border-rosa/20 pt-3">
-            <div className="flex justify-between text-sm font-bold text-texto-suave">
-              <span>Total del mes</span>
-              <span>{formatCurrency(monthTotal)}</span>
+            <div className="space-y-2 border-t border-rosa/20 pt-3">
+              <div className="flex justify-between text-sm font-bold text-texto-suave">
+                <span>Total del mes</span>
+                <span>{formatCurrency(selectedMonthTotal)}</span>
+              </div>
+              <div className="flex justify-between text-sm font-bold text-green-600">
+                <span>Ganancia del mes</span>
+                <span>{formatCurrency(selectedMonthProfit)}</span>
+              </div>
+              <button
+                onClick={() => { setTimeout(handlePrintMonthlyCut, 100); }}
+                disabled={selectedMonthDailyArray.length === 0}
+                className="w-full bg-rosa-oscuro hover:bg-rosa text-white py-2.5 rounded-full text-sm font-medium flex items-center justify-center gap-2 transition-colors shadow-md disabled:opacity-50"
+              >
+                <Printer size={16} /> Imprimir corte mensual
+              </button>
             </div>
-            <div className="flex justify-between text-sm font-bold text-green-600">
-              <span>Ganancia del mes</span>
-              <span>{formatCurrency(monthProfit)}</span>
-            </div>
-            <button
-              onClick={() => { setTimeout(handlePrintMonthlyCut, 100); }}
-              disabled={dailyArray.length === 0}
-              className="w-full bg-rosa-oscuro hover:bg-rosa text-white py-2.5 rounded-full text-sm font-medium flex items-center justify-center gap-2 transition-colors shadow-md disabled:opacity-50"
-            >
-              <Printer size={16} /> Imprimir corte mensual
-            </button>
-          </div>
-          <div style={{ display: 'none' }}>
-            <MonthlyCutTicket ref={monthlyCutRef} dailyData={dailyArray} monthName={monthName} totalGeneral={monthTotal} totalGanancia={monthProfit} />
-          </div>
+          </>
+        )}
+        <div style={{ display: 'none' }}>
+          <MonthlyCutTicket
+            ref={monthlyCutRef}
+            dailyData={selectedMonthDailyArray}
+            monthName={selectedMonthName}
+            totalGeneral={selectedMonthTotal}
+            totalGanancia={selectedMonthProfit}
+          />
         </div>
+      </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-rosa/20">
-          <h3 className="text-lg font-bold text-texto-suave mb-4 flex items-center gap-2"><Star size={20} /> Más vendidos del mes</h3>
-          {topProducts.length === 0 ? (
-            <p className="text-gray-400 text-sm">No hay ventas este mes</p>
-          ) : (
-            <div className="space-y-3 max-h-80 overflow-y-auto">
-              {topProducts.map((p, idx) => (
-                <div key={idx}>
-                  <div className="flex justify-between items-center text-sm mb-1">
-                    <span className="font-medium text-texto-suave truncate flex-1 mr-2">{p.name}</span>
-                    <span className="text-xs text-gray-500">{p.quantity} vendidos • {formatCurrency(p.total)}</span>
-                  </div>
-                  <div className="w-full bg-rosa/10 rounded-full h-3">
-                    <div className="bg-rosa-oscuro h-3 rounded-full" style={{ width: `${(p.quantity / maxQty) * 100}%` }}></div>
-                  </div>
+      {/* Más vendidos del mes seleccionado */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-rosa/20">
+        <h3 className="text-lg font-bold text-texto-suave mb-4 flex items-center gap-2"><Star size={20} /> Más vendidos del mes</h3>
+        {topProducts.length === 0 ? (
+          <p className="text-gray-400 text-sm">No hay ventas este mes</p>
+        ) : (
+          <div className="space-y-3 max-h-80 overflow-y-auto">
+            {topProducts.map((p, idx) => (
+              <div key={idx}>
+                <div className="flex justify-between items-center text-sm mb-1">
+                  <span className="font-medium text-texto-suave truncate flex-1 mr-2">{p.name}</span>
+                  <span className="text-xs text-gray-500">{p.quantity} vendidos • {formatCurrency(p.total)}</span>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <div className="w-full bg-rosa/10 rounded-full h-3">
+                  <div className="bg-rosa-oscuro h-3 rounded-full" style={{ width: `${(p.quantity / maxQty) * 100}%` }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Sugerencias */}

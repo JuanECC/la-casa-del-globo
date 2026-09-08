@@ -10,8 +10,16 @@
   --color-rosa-oscuro: #E8A0BF;
   --color-texto-suave: #5A4A5C;
 }
+
 @layer components {
   .input-pastel {
-    @apply w-full px-4 py-3 rounded-xl border border-gray-200 bg-white focus:border-rosa-oscuro outline-none text-texto-suave;
+    @apply w-full px-4 py-3 rounded-xl border border-gray-200 bg-white
+      text-texto-suave placeholder-gray-400
+      shadow-sm
+      transition-all duration-200
+      outline-none
+      focus:border-rosa-oscuro
+      focus:shadow-[0_0_0_4px_rgba(232,160,191,0.15)]
+      hover:border-gray-300;
   }
 }
