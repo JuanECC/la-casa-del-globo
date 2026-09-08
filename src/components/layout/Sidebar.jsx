@@ -1,14 +1,8 @@
- import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import {
-  Home,
-  Package,
-  ShoppingCart,
-  Calendar,
-  Users,
-  BarChart,
-  Image,
-  LogOut,
+  Home, Package, ShoppingCart, Calendar, Users,
+  BarChart, LogOut, X
 } from 'lucide-react';
 
 const menuItems = [
@@ -17,25 +11,36 @@ const menuItems = [
   { to: '/ventas', icon: ShoppingCart, label: 'Vender' },
   { to: '/pedidos', icon: Calendar, label: 'Pedidos' },
   { to: '/clientes', icon: Users, label: 'Clientes' },
-  { to: '/reportes', icon: BarChart, label: 'Reportes' }
+  { to: '/reportes', icon: BarChart, label: 'Reportes' },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+    if (onClose) onClose();
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-rosa/20 flex flex-col h-screen sticky top-0">
-      {/* Logo */}
-      <div className="p-6 text-center border-b border-rosa/20">
-        <span className="text-4xl">🎈</span>
-        <h2 className="text-lg font-bold text-texto-suave mt-2">La Casa del Globo</h2>
-        <p className="text-xs text-rosa-oscuro italic mt-1">Inflamos sonrisas</p>
+    <aside className="w-64 h-full bg-white border-r border-rosa/20 flex flex-col">
+      {/* Encabezado con botón de cerrar (solo móvil) */}
+      <div className="p-4 border-b border-rosa/20 flex items-center justify-between">
+        <div className="text-center flex-1">
+          <span className="text-3xl">🎈</span>
+          <h2 className="text-base font-bold text-texto-suave">La Casa del Globo</h2>
+          <p className="text-xs text-rosa-oscuro italic">Inflamos sonrisas</p>
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="lg:hidden p-1 rounded-lg hover:bg-rosa/20 text-texto-suave"
+          >
+            <X size={20} />
+          </button>
+        )}
       </div>
 
       {/* Menú */}
@@ -44,6 +49,7 @@ export default function Sidebar() {
           <NavLink
             key={item.to}
             to={item.to}
+            onClick={onClose}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-sm ${
                 isActive

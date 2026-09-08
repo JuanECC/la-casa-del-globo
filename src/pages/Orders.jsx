@@ -53,30 +53,25 @@ export default function Orders() {
   const [loading, setLoading] = useState(false);
   const [showNewClient, setShowNewClient] = useState(false);
 
-  // Panel derecho de productos
   const [productSearchTerm, setProductSearchTerm] = useState('');
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [showProductSelector, setShowProductSelector] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null); // nueva categoría
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
-  // Modal de cobro
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [payingOrder, setPayingOrder] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState('efectivo');
   const [cashReceived, setCashReceived] = useState('');
   const [processingPayment, setProcessingPayment] = useState(false);
 
-  // Ticket
   const [lastSale, setLastSale] = useState(null);
   const [showTicket, setShowTicket] = useState(false);
   const [ticketWidth, setTicketWidth] = useState('58mm');
   const ticketRef = useRef();
 
-  // Modal de detalle de productos
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailOrder, setDetailOrder] = useState(null);
 
-  // Modal de eliminar
   const [modal, setModal] = useState({ show: false, type: '', orderId: null, orderName: '' });
 
   useEffect(() => {
@@ -85,7 +80,6 @@ export default function Orders() {
     loadProducts();
   }, []);
 
-  // ---------------- Carga de datos (con normalización de tipos) ----------------
   const loadOrders = async () => {
     setLoading(true);
     const data = await getOrders();
@@ -115,13 +109,11 @@ export default function Orders() {
     setAllProducts(data);
   };
 
-  // ---------------- Impresión del ticket ----------------
   const handlePrint = useReactToPrint({
     contentRef: ticketRef,
     documentTitle: `Ticket_${lastSale?.ticketNumber || 'pedido'}`,
   });
 
-  // ---------------- Buscador de productos (para el panel derecho) ----------------
   const categories = [...new Set(allProducts.map(p => p.category).filter(Boolean))].sort();
 
   const searchProducts = (term) => {
@@ -138,7 +130,6 @@ export default function Orders() {
     setFilteredProducts(results);
   };
 
-  // Obtener productos filtrados por búsqueda y categoría
   const getFilteredProducts = () => {
     let results = allProducts;
     const term = productSearchTerm.toLowerCase();
@@ -218,7 +209,6 @@ export default function Orders() {
     setForm(newForm);
   };
 
-  // ---------------- Selección de cliente ----------------
   const handleClientSelect = (clientId) => {
     if (clientId === 'new') {
       setShowNewClient(true);
@@ -239,7 +229,6 @@ export default function Orders() {
     }
   };
 
-  // ---------------- Guardar pedido (crear/editar) ----------------
   const handleSubmit = async (e) => {
     e.preventDefault();
     let finalClientId = form.clientId;
@@ -291,7 +280,6 @@ export default function Orders() {
     loadClients();
   };
 
-  // ---------------- Editar pedido existente ----------------
   const handleEdit = (order) => {
     setEditingId(order.id);
     setForm({
@@ -318,19 +306,16 @@ export default function Orders() {
     setShowNewClient(false);
   };
 
-  // ---------------- Eliminar pedido ----------------
   const handleDelete = async (id) => {
     await deleteOrder(id);
     loadOrders();
   };
 
-  // ---------------- Cambiar estado manualmente ----------------
   const handleStatusChange = async (orderId, newStatus) => {
     await updateOrder(orderId, { status: newStatus });
     loadOrders();
   };
 
-  // ---------------- Abrir modal de cobro ----------------
   const openPaymentModal = (order) => {
     setPayingOrder(order);
     setPaymentMethod('efectivo');
@@ -338,7 +323,6 @@ export default function Orders() {
     setShowPaymentModal(true);
   };
 
-  // ---------------- Ejecutar cobro y finalizar pedido (CORREGIDO) ----------------
   const handleCompleteOrder = async () => {
     if (!payingOrder) return;
     const total = Number(payingOrder.total) || 0;
@@ -399,12 +383,10 @@ export default function Orders() {
     setProcessingPayment(false);
   };
 
-  // ---------------- Modal de confirmación para eliminar ----------------
   const confirmDelete = (order) => {
     setModal({ show: true, type: 'delete', orderId: order.id, orderName: order.clientName });
   };
 
-  // ---------------- Colores de estado ----------------
   const getStatusColor = (status) => {
     const colors = {
       'pendiente': 'bg-amarillo/30 text-yellow-700',
@@ -415,7 +397,6 @@ export default function Orders() {
     return colors[status] || 'bg-gray-100';
   };
 
-  // ---------------- Filtro de pedidos ----------------
   const filtered = orders.filter(o => {
     const term = search.toLowerCase();
     const matchSearch =
@@ -434,30 +415,40 @@ export default function Orders() {
     ? (parseFloat(cashReceived) || 0) - remainingToPay
     : 0;
 
-  // Productos a mostrar en el panel (combinando búsqueda y categoría)
   const panelProducts = (() => {
-    if (productSearchTerm) {
-      return filteredProducts; // los resultados de la búsqueda en tiempo real
-    }
-    if (selectedCategory) {
-      return allProducts.filter(p => p.category === selectedCategory);
-    }
+    if (productSearchTerm) return filteredProducts;
+    if (selectedCategory) return allProducts.filter(p => p.category === selectedCategory);
     return [];
   })();
 
-  // ---------------- Render principal con panel derecho de productos ----------------
+  const getCatEmoji = (cat) => {
+    const map = {
+      'globos': '🎈',
+      'arreglos': '💐',
+      'peluches': '🧸',
+      'regalos': '🎁',
+      'decoraciones': '✨',
+      'accesorios': '🎀',
+      'velas': '🕯️',
+      'cajas sorpresa': '📦',
+      'brillos': '✨',
+      'infladores': '💨',
+      'globos de figuras': '🎭',
+    };
+    return map[cat] || '📌';
+  };
+
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold text-texto-suave flex items-center gap-2">
+      <h2 className="text-2xl lg:text-3xl font-bold text-texto-suave flex items-center gap-2">
         <Calendar size={30} /> Pedidos personalizados
       </h2>
 
-      <div className="flex gap-6 h-[calc(100vh-10rem)]">
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
         {/* Columna izquierda: formulario del pedido */}
-        <div className="flex-1 overflow-y-auto">
-          <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border border-rosa/20 space-y-4">
+        <div className="flex-1 overflow-y-auto order-1 lg:order-none">
+          <form onSubmit={handleSubmit} className="bg-white p-4 lg:p-6 rounded-2xl shadow-sm border border-rosa/20 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Cliente */}
               <div className="md:col-span-2">
                 <label className="block text-xs text-texto-suave mb-1 ml-1">Cliente *</label>
                 <select value={showNewClient ? 'new' : form.clientId} onChange={(e) => handleClientSelect(e.target.value)} className="input-pastel" required>
@@ -500,13 +491,12 @@ export default function Orders() {
           </form>
         </div>
 
-        {/* Columna derecha: productos del pedido (estilo carrito con categorías) */}
-        <div className="w-96 bg-white rounded-2xl shadow-sm border border-rosa/20 p-4 flex flex-col">
+        {/* Columna derecha: productos del pedido */}
+        <div className="w-full lg:w-96 bg-white rounded-2xl shadow-sm border border-rosa/20 p-4 flex flex-col order-2 lg:order-none max-h-[60vh] lg:max-h-[calc(100vh-10rem)]">
           <h3 className="text-lg font-bold text-texto-suave mb-3 flex items-center gap-2">
             <ShoppingCart size={20} /> Productos ({form.items?.length || 0})
           </h3>
 
-          {/* Buscador de productos */}
           <div className="relative mb-3">
             <input
               type="text"
@@ -520,9 +510,7 @@ export default function Orders() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
-                  if (panelProducts.length > 0) {
-                    addItemToOrder(panelProducts[0]);
-                  }
+                  if (panelProducts.length > 0) addItemToOrder(panelProducts[0]);
                 }
               }}
               className="input-pastel pr-10"
@@ -530,7 +518,6 @@ export default function Orders() {
             <Search size={16} className="absolute right-3 top-3 text-gray-400" />
           </div>
 
-          {/* Cuadritos de categorías (si no hay búsqueda ni categoría seleccionada) */}
           {!selectedCategory && !productSearchTerm && (
             <div className="grid grid-cols-3 gap-2 mb-3">
               {categories.map(cat => (
@@ -538,34 +525,19 @@ export default function Orders() {
                   key={cat}
                   type="button"
                   onClick={() => setSelectedCategory(cat)}
-                  className="bg-white hover:bg-rosa/10 border border-rosa/20 rounded-2xl p-3 text-center transition-all shadow-sm hover:shadow-md"
+                  className="bg-white hover:bg-rosa/10 border border-rosa/20 rounded-2xl p-2 text-center transition-all shadow-sm hover:shadow-md"
                 >
-                  <span className="text-xl block mb-1">
-                    {cat === 'globos' ? '🎈' :
-                     cat === 'arreglos' ? '💐' :
-                     cat === 'peluches' ? '🧸' :
-                     cat === 'regalos' ? '🎁' :
-                     cat === 'decoraciones' ? '✨' :
-                     cat === 'accesorios' ? '🎀' :
-                     cat === 'velas' ? '🕯️' :
-                     cat === 'cajas sorpresa' ? '📦' :
-                     cat === 'brillos' ? '✨' : '📌'}
-                  </span>
+                  <span className="text-lg block mb-1">{getCatEmoji(cat)}</span>
                   <span className="text-xs font-medium text-texto-suave capitalize">{cat}</span>
                 </button>
               ))}
             </div>
           )}
 
-          {/* Botón para regresar a categorías */}
           {(selectedCategory || productSearchTerm) && (
             <button
               type="button"
-              onClick={() => {
-                setSelectedCategory(null);
-                setProductSearchTerm('');
-                setFilteredProducts([]);
-              }}
+              onClick={() => { setSelectedCategory(null); setProductSearchTerm(''); setFilteredProducts([]); }}
               className="flex items-center gap-2 text-xs text-rosa-oscuro hover:underline mb-2"
             >
               <ArrowLeft size={14} />
@@ -573,16 +545,11 @@ export default function Orders() {
             </button>
           )}
 
-          {/* Resultados de productos */}
           {(selectedCategory || productSearchTerm) && (
-            <div className="bg-white border border-rosa/20 rounded-xl shadow-sm max-h-40 overflow-y-auto mb-3">
+            <div className="bg-white border border-rosa/20 rounded-xl shadow-sm max-h-32 lg:max-h-40 overflow-y-auto mb-3">
               {panelProducts.length > 0 ? (
                 panelProducts.map(p => (
-                  <div
-                    key={p.id}
-                    className="px-3 py-2 hover:bg-rosa/5 cursor-pointer flex justify-between items-center text-sm"
-                    onClick={() => addItemToOrder(p)}
-                  >
+                  <div key={p.id} className="px-3 py-2 hover:bg-rosa/5 cursor-pointer flex justify-between items-center text-sm" onClick={() => addItemToOrder(p)}>
                     <span>{p.name} <span className="text-xs text-gray-400">({p.sku})</span></span>
                     <span className="text-rosa-oscuro font-medium">${p.salePrice}</span>
                   </div>
@@ -593,7 +560,6 @@ export default function Orders() {
             </div>
           )}
 
-          {/* Lista de items agregados */}
           <div className="flex-1 overflow-y-auto space-y-2 mb-3">
             {(form.items && form.items.length > 0) ? (
               form.items.map((item, idx) => (
@@ -616,19 +582,15 @@ export default function Orders() {
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={calculateTotalFromItems}
-            className="text-xs text-rosa-oscuro underline hover:no-underline mb-2"
-          >
+          <button type="button" onClick={calculateTotalFromItems} className="text-xs text-rosa-oscuro underline hover:no-underline mb-2">
             Calcular total desde productos
           </button>
         </div>
       </div>
 
-      {/* ========== FILTROS Y TABLA ========== */}
+      {/* Filtros y tabla de pedidos */}
       <div className="flex flex-col sm:flex-row gap-4">
-        <input type="text" placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} className="input-pastel flex-1" />
+        <input type="text" placeholder="Buscar pedido..." value={search} onChange={e => setSearch(e.target.value)} className="input-pastel flex-1" />
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="input-pastel">
           <option value="">Todos los estados</option>
           {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -656,51 +618,36 @@ export default function Orders() {
             ) : (
               filtered.map(o => (
                 <tr key={o.id} className="border-b border-rosa/10 hover:bg-rosa/5">
-                  <td className="p-3">
-                    <p className="font-medium">{o.clientName}</p>
-                    <p className="text-xs text-gray-400 flex items-center gap-1"><Phone size={12} /> {o.phone}</p>
-                  </td>
+                  <td className="p-3"><p className="font-medium">{o.clientName}</p><p className="text-xs text-gray-400">{o.phone}</p></td>
                   <td className="p-3">{o.eventType}</td>
                   <td className="p-3 text-xs">
-                    <p className="flex items-center gap-1"><Calendar size={12} /> {o.eventDate}</p>
-                    {o.eventTime && <p className="flex items-center gap-1"><Clock size={12} /> {o.eventTime}</p>}
+                    <p>{o.eventDate}</p>
+                    {o.eventTime && <p>{o.eventTime}</p>}
                   </td>
-                  <td className="p-3">
-                    <p className="font-medium">${Number(o.total || 0).toFixed(2)}</p>
-                    {Number(o.advance) > 0 && <p className="text-xs text-gray-400">Ant: ${Number(o.advance).toFixed(2)}</p>}
-                  </td>
+                  <td className="p-3">${Number(o.total || 0).toFixed(2)}</td>
                   <td className="p-3">
                     {Number(o.remaining) > 0 ? (
                       <span className="text-rosa-oscuro font-medium">${Number(o.remaining).toFixed(2)}</span>
                     ) : (
-                      <span className="text-green-600 text-xs font-medium flex items-center gap-1"><CheckCircle size={14} /> Pagado</span>
+                      <span className="text-green-600 text-xs">Pagado</span>
                     )}
                   </td>
                   <td className="p-3">
                     <select
                       value={o.status}
                       onChange={(e) => handleStatusChange(o.id, e.target.value)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium border-0 outline-none cursor-pointer appearance-none text-center pr-6 bg-no-repeat ${getStatusColor(o.status)}`}
-                      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23555'%3E%3Cpath d='M6 8L2 4h8z'/%3E%3C/svg%3E")`, backgroundPosition: 'right 6px center' }}
+                      className={`px-2 py-1 rounded-full text-xs font-medium border-0 outline-none cursor-pointer ${getStatusColor(o.status)}`}
                     >
                       {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </td>
                   <td className="p-3">
                     <div className="flex items-center gap-2">
-                      <button onClick={() => { setDetailOrder(o); setShowDetailModal(true); }} className="p-1.5 rounded-lg hover:bg-rosa/10 text-texto-suave transition-colors" title="Ver productos">
-                        <Eye size={16} />
-                      </button>
-                      <button onClick={() => handleEdit(o)} className="p-1.5 rounded-lg hover:bg-rosa/10 text-rosa-oscuro transition-colors" title="Editar">
-                        <Pencil size={16} />
-                      </button>
-                      <button onClick={() => confirmDelete(o)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition-colors" title="Eliminar">
-                        <Trash2 size={16} />
-                      </button>
+                      <button onClick={() => { setDetailOrder(o); setShowDetailModal(true); }} className="p-1.5 rounded-lg hover:bg-rosa/10 text-texto-suave" title="Ver productos"><Eye size={16} /></button>
+                      <button onClick={() => handleEdit(o)} className="p-1.5 rounded-lg hover:bg-rosa/10 text-rosa-oscuro" title="Editar"><Pencil size={16} /></button>
+                      <button onClick={() => confirmDelete(o)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-400" title="Eliminar"><Trash2 size={16} /></button>
                       {(o.status === 'pendiente' || o.status === 'en proceso') && o.items && o.items.length > 0 && (
-                        <button onClick={() => openPaymentModal(o)} className="ml-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium hover:bg-green-200 transition-colors flex items-center gap-1" title="Cobrar pedido">
-                          <CheckCircle size={14} /> Cobrar
-                        </button>
+                        <button onClick={() => openPaymentModal(o)} className="ml-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium hover:bg-green-200">Cobrar</button>
                       )}
                     </div>
                   </td>
@@ -711,37 +658,24 @@ export default function Orders() {
         </table>
       </div>
 
-      {/* ========== MODAL DE DETALLE DE PRODUCTOS ========== */}
+      {/* Modales: detalle, pago, ticket, eliminar */}
       {showDetailModal && detailOrder && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-lg animate-in">
             <div className="bg-rosa/10 px-6 py-4 flex justify-between items-center border-b border-rosa/20">
-              <h3 className="text-lg font-bold text-texto-suave flex items-center gap-2">
-                <Package size={20} /> Productos del pedido
-              </h3>
-              <button onClick={() => setShowDetailModal(false)} className="text-texto-suave hover:text-rosa-oscuro">
-                <X size={24} />
-              </button>
+              <h3 className="text-lg font-bold text-texto-suave">Productos del pedido</h3>
+              <button onClick={() => setShowDetailModal(false)}><X size={24} /></button>
             </div>
             <div className="p-6 space-y-3 max-h-80 overflow-y-auto">
-              <p className="text-sm text-texto-suave font-medium">{detailOrder.clientName}</p>
-              {(detailOrder.items && detailOrder.items.length > 0) ? (
-                detailOrder.items.map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-sm border-b border-rosa/10 pb-2">
-                    <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-xs text-gray-400">
-                        {item.quantity} x ${Number(item.unitPrice || 0).toFixed(2)} c/u
-                      </p>
-                    </div>
-                    <p className="font-bold text-rosa-oscuro">${Number(item.subtotal || 0).toFixed(2)}</p>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-400 text-center py-4">Sin productos registrados</p>
-              )}
-              <div className="border-t border-rosa/20 pt-2 flex justify-between font-bold text-texto-suave">
-                <span>Total pedido</span>
+              <p className="text-sm font-medium">{detailOrder.clientName}</p>
+              {(detailOrder.items || []).map((item, idx) => (
+                <div key={idx} className="flex justify-between text-sm border-b pb-2">
+                  <span>{item.quantity}x {item.name}</span>
+                  <span>${Number(item.subtotal || 0).toFixed(2)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between font-bold pt-2">
+                <span>Total</span>
                 <span>${Number(detailOrder.total || 0).toFixed(2)}</span>
               </div>
             </div>
@@ -749,53 +683,48 @@ export default function Orders() {
         </div>
       )}
 
-      {/* ========== MODALES (COBRO, TICKET, ELIMINAR) ========== */}
       {showPaymentModal && payingOrder && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-lg shadow-lg animate-in">
             <div className="bg-rosa/10 px-6 py-4 flex justify-between items-center border-b border-rosa/20">
-              <h3 className="text-lg font-bold text-texto-suave flex items-center gap-2"><ShoppingCart size={22} /> Cobrar pedido</h3>
-              <button onClick={() => setShowPaymentModal(false)} className="text-texto-suave hover:text-rosa-oscuro"><X size={24} /></button>
+              <h3 className="text-lg font-bold">Cobrar pedido</h3>
+              <button onClick={() => setShowPaymentModal(false)}><X size={24} /></button>
             </div>
             <div className="p-6 space-y-4">
-              <div className="space-y-2">
-                <p className="text-sm text-texto-suave">{payingOrder.clientName}</p>
-                <div className="flex justify-between items-end">
-                  <span className="text-2xl font-bold text-texto-suave">${Number(payingOrder.total || 0).toFixed(2)}</span>
-                  {Number(payingOrder.advance) > 0 && (
-                    <div className="text-right">
-                      <p className="text-sm text-gray-500">Anticipo: ${Number(payingOrder.advance).toFixed(2)}</p>
-                      <p className="text-lg font-semibold text-rosa-oscuro">Resta: ${remainingToPay.toFixed(2)}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-texto-suave mb-2">Método de pago</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {['efectivo', 'tarjeta', 'transferencia'].map(method => {
-                    const Icon = paymentIcons[method];
-                    const isActive = paymentMethod === method;
-                    return (
-                      <button key={method} type="button" onClick={() => setPaymentMethod(method)} className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${isActive ? 'border-rosa-oscuro bg-rosa/20 text-rosa-oscuro' : 'border-gray-200 bg-white text-texto-suave hover:border-rosa/30'}`}>
-                        <Icon size={24} /><span className="text-xs mt-1 capitalize">{method}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+              <p>{payingOrder.clientName}</p>
+              <p className="text-2xl font-bold">${Number(payingOrder.total || 0).toFixed(2)}</p>
+              {Number(payingOrder.advance) > 0 && (
+                <p className="text-sm">Anticipo: ${Number(payingOrder.advance).toFixed(2)} — Resta: ${remainingToPay.toFixed(2)}</p>
+              )}
+              <div className="grid grid-cols-3 gap-3">
+                {['efectivo', 'tarjeta', 'transferencia'].map(method => (
+                  <button
+                    key={method}
+                    onClick={() => setPaymentMethod(method)}
+                    className={`p-3 rounded-xl border-2 ${paymentMethod === method ? 'border-rosa-oscuro bg-rosa/20' : 'border-gray-200'}`}
+                  >
+                    <span className="text-xs capitalize">{method}</span>
+                  </button>
+                ))}
               </div>
               {paymentMethod === 'efectivo' && (
                 <div>
-                  <label className="block text-xs text-texto-suave mb-1">Efectivo recibido</label>
-                  <input type="number" placeholder="0.00" value={cashReceived} onChange={(e) => setCashReceived(e.target.value)} className="input-pastel text-lg font-bold text-center" min="0" autoFocus onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }} />
-                  {change > 0 && <p className="text-green-600 font-medium text-center mt-2 text-lg">Cambio: ${change.toFixed(2)}</p>}
-                  {change < 0 && <p className="text-red-500 text-center mt-2">Faltan ${Math.abs(change).toFixed(2)}</p>}
-                  {change === 0 && cashReceived && <p className="text-green-600 font-medium text-center mt-2">Pago exacto</p>}
+                  <input
+                    type="number"
+                    placeholder="0.00"
+                    value={cashReceived}
+                    onChange={(e) => setCashReceived(e.target.value)}
+                    className="input-pastel text-lg font-bold text-center"
+                  />
+                  {change > 0 && <p className="text-green-600 text-center">Cambio: ${change.toFixed(2)}</p>}
+                  {change < 0 && <p className="text-red-500 text-center">Faltan ${Math.abs(change).toFixed(2)}</p>}
                 </div>
               )}
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowPaymentModal(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-texto-suave py-3 rounded-full font-medium">Cancelar</button>
-                <button onClick={handleCompleteOrder} disabled={processingPayment} className="flex-1 bg-rosa-oscuro hover:bg-rosa text-white py-3 rounded-full font-medium shadow-md disabled:opacity-50">{processingPayment ? 'Procesando...' : 'Confirmar cobro'}</button>
+              <div className="flex gap-3">
+                <button onClick={() => setShowPaymentModal(false)} className="flex-1 bg-gray-100 py-3 rounded-full">Cancelar</button>
+                <button onClick={handleCompleteOrder} disabled={processingPayment} className="flex-1 bg-rosa-oscuro text-white py-3 rounded-full disabled:opacity-50">
+                  {processingPayment ? 'Procesando...' : 'Confirmar cobro'}
+                </button>
               </div>
             </div>
           </div>
@@ -806,13 +735,10 @@ export default function Orders() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-texto-suave">🧾 Ticket del pedido</h3>
+              <h3 className="text-lg font-bold">🧾 Ticket del pedido</h3>
               <div className="flex gap-2">
-                <select value={ticketWidth} onChange={(e) => setTicketWidth(e.target.value)} className="text-sm border rounded-lg px-2 py-1">
-                  <option value="58mm">58mm</option><option value="80mm">80mm</option>
-                </select>
                 <button onClick={handlePrint} className="bg-rosa-oscuro text-white px-4 py-2 rounded-full text-sm">🖨️ Imprimir</button>
-                <button onClick={() => setShowTicket(false)} className="bg-gray-200 text-texto-suave px-4 py-2 rounded-full text-sm">Cerrar</button>
+                <button onClick={() => setShowTicket(false)} className="bg-gray-200 px-4 py-2 rounded-full text-sm">Cerrar</button>
               </div>
             </div>
             <div className="bg-gray-100 p-4 rounded-xl flex justify-center overflow-x-auto">
@@ -825,11 +751,14 @@ export default function Orders() {
       {modal.show && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-lg">
-            <div className="flex items-center gap-3 mb-4"><div className="bg-red-100 p-2 rounded-full"><AlertTriangle size={24} className="text-red-500" /></div><div><h3 className="font-bold text-texto-suave">¿Eliminar pedido?</h3><p className="text-sm text-gray-500">{modal.orderName}</p></div></div>
-            <p className="text-sm text-texto-suave mb-6">Esta acción no se puede deshacer.</p>
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="text-red-500" />
+              <h3 className="font-bold">¿Eliminar pedido?</h3>
+            </div>
+            <p className="text-sm mb-6">{modal.orderName}</p>
             <div className="flex gap-3 justify-end">
-              <button onClick={() => setModal({ show: false })} className="px-4 py-2 rounded-full text-sm text-texto-suave hover:bg-gray-100">Cancelar</button>
-              <button onClick={() => { handleDelete(modal.orderId); setModal({ show: false }); }} className="px-4 py-2 rounded-full text-sm bg-red-500 text-white hover:bg-red-600">Eliminar</button>
+              <button onClick={() => setModal({ show: false })} className="px-4 py-2 rounded-full">Cancelar</button>
+              <button onClick={() => { handleDelete(modal.orderId); setModal({ show: false }); }} className="px-4 py-2 rounded-full bg-red-500 text-white">Eliminar</button>
             </div>
           </div>
         </div>

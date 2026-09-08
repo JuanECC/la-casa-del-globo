@@ -25,8 +25,7 @@ export default function POS() {
   const [showReview, setShowReview] = useState(false);
   const [ticketWidth, setTicketWidth] = useState('58mm');
   const ticketRef = useRef();
-
-  // Categoría seleccionada
+  const [isProcessingSale, setIsProcessingSale] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
 
   useEffect(() => {
@@ -43,13 +42,10 @@ export default function POS() {
     documentTitle: `Ticket_${lastSale?.ticketNumber || 'venta'}`,
   });
 
-  // Extraer categorías únicas de los productos
   const categories = [...new Set(products.map(p => p.category).filter(Boolean))].sort();
 
-  // Productos filtrados: la búsqueda por texto tiene prioridad sobre la categoría
   const filteredProducts = products.filter(p => {
     const term = searchTerm.toLowerCase();
-    // Si hay término de búsqueda, buscar en todos los productos (SKU, nombre, marca)
     if (term) {
       return (
         p.name?.toLowerCase().includes(term) ||
@@ -57,15 +53,12 @@ export default function POS() {
         p.brand?.toLowerCase().includes(term)
       );
     }
-    // Si no hay búsqueda pero sí categoría seleccionada, filtrar por categoría
     if (selectedCategory) {
       return p.category === selectedCategory;
     }
-    // Sin búsqueda ni categoría: no mostrar nada
     return false;
   });
 
-  // Mostrar productos si hay búsqueda o categoría seleccionada
   const showProductGrid = searchTerm || selectedCategory;
 
   const addToCart = (product) => {
@@ -113,41 +106,43 @@ export default function POS() {
     if (cart.length === 0) return;
     setCashReceived('');
     setPaymentMethod('efectivo');
+    setIsProcessingSale(false);
     setShowReview(true);
   };
 
   const handleCompleteSale = async () => {
+    if (isProcessingSale) return;
     if (paymentMethod === 'efectivo' && (parseFloat(cashReceived) || 0) < total) {
       alert('El efectivo recibido es menor al total.');
       return;
     }
 
-    const ticketNumber = Date.now().toString().slice(-6);
-
-    const saleData = {
-      items: cart.map(item => ({
-        productId: item.productId,
-        name: item.name,
-        sku: item.sku,
-        quantity: item.quantity,
-        unitPrice: item.price,
-        subtotal: item.price * item.quantity,
-        newStock: item.currentStock - item.quantity
-      })),
-      subtotal,
-      discount,
-      total,
-      paymentMethod,
-      cashReceived: paymentMethod === 'efectivo' ? parseFloat(cashReceived) || 0 : 0,
-      change: paymentMethod === 'efectivo' ? change : 0,
-      userId: user.uid,
-      userEmail: user.email,
-      createdAt: new Date().toISOString(),
-      date: new Date().toISOString().slice(0, 10),
-      ticketNumber
-    };
-
+    setIsProcessingSale(true);
     try {
+      const ticketNumber = Date.now().toString().slice(-6);
+      const saleData = {
+        items: cart.map(item => ({
+          productId: item.productId,
+          name: item.name,
+          sku: item.sku,
+          quantity: item.quantity,
+          unitPrice: item.price,
+          subtotal: item.price * item.quantity,
+          newStock: item.currentStock - item.quantity
+        })),
+        subtotal,
+        discount,
+        total,
+        paymentMethod,
+        cashReceived: paymentMethod === 'efectivo' ? parseFloat(cashReceived) || 0 : 0,
+        change: paymentMethod === 'efectivo' ? change : 0,
+        userId: user.uid,
+        userEmail: user.email,
+        createdAt: new Date().toISOString(),
+        date: new Date().toISOString().slice(0, 10),
+        ticketNumber
+      };
+
       await createSale(saleData);
       setLastSale(saleData);
       setShowReview(false);
@@ -159,15 +154,32 @@ export default function POS() {
     } catch (error) {
       console.error('Error al guardar venta:', error);
       alert('Error al procesar la venta');
+    } finally {
+      setIsProcessingSale(false);
     }
   };
 
-  const PaymentIcon = paymentIcons[paymentMethod] || Banknote;
+  const getCatEmoji = (cat) => {
+    const map = {
+      'globos': '🎈',
+      'arreglos': '💐',
+      'peluches': '🧸',
+      'regalos': '🎁',
+      'decoraciones': '✨',
+      'accesorios': '🎀',
+      'velas': '🕯️',
+      'cajas sorpresa': '📦',
+      'brillos': '✨',
+      'infladores': '💨',
+      'globos de figuras': '🎭',
+    };
+    return map[cat] || '📌';
+  };
 
   return (
-    <div className="flex gap-6 h-[calc(100vh-8rem)]">
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 min-h-screen lg:h-[calc(100vh-8rem)]">
       {/* Panel izquierdo: Búsqueda y productos */}
-      <div className="flex-1 space-y-4">
+      <div className="flex-1 space-y-4 order-1 lg:order-none">
         <h2 className="text-2xl font-bold text-texto-suave flex items-center gap-2">
           <ShoppingCart size={28} /> Punto de Venta
         </h2>
@@ -176,7 +188,7 @@ export default function POS() {
           <Search className="absolute left-3 top-3 text-gray-400" size={20} />
           <input
             type="text"
-            placeholder="Escanear código o buscar producto..."
+            placeholder="Escanear o buscar producto..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => {
@@ -193,33 +205,21 @@ export default function POS() {
           />
         </div>
 
-        {/* Cuadritos de categorías (si no hay categoría seleccionada ni búsqueda) */}
         {!selectedCategory && !searchTerm && (
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2 lg:gap-3">
             {categories.map(cat => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className="bg-white hover:bg-rosa/10 border border-rosa/20 rounded-2xl p-4 text-center transition-all shadow-sm hover:shadow-md"
+                className="bg-white hover:bg-rosa/10 border border-rosa/20 rounded-2xl p-3 lg:p-4 text-center transition-all shadow-sm hover:shadow-md"
               >
-                <span className="text-2xl block mb-1">
-                  {cat === 'globos' ? '🎈' :
-                   cat === 'arreglos' ? '💐' :
-                   cat === 'peluches' ? '🧸' :
-                   cat === 'regalos' ? '🎁' :
-                   cat === 'decoraciones' ? '✨' :
-                   cat === 'accesorios' ? '🎀' :
-                   cat === 'velas' ? '🕯️' :
-                   cat === 'cajas sorpresa' ? '📦' :
-                   cat === 'brillos' ? '✨' : '📌'}
-                </span>
+                <span className="text-xl lg:text-2xl block mb-1">{getCatEmoji(cat)}</span>
                 <span className="text-xs font-medium text-texto-suave capitalize">{cat}</span>
               </button>
             ))}
           </div>
         )}
 
-        {/* Botón para regresar a las categorías cuando hay una seleccionada */}
         {selectedCategory && !searchTerm && (
           <button
             onClick={() => setSelectedCategory(null)}
@@ -230,8 +230,7 @@ export default function POS() {
           </button>
         )}
 
-        {/* Resultados: productos de la categoría o búsqueda */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 overflow-y-auto max-h-[calc(100vh-16rem)]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 overflow-y-auto max-h-[50vh] lg:max-h-[calc(100vh-16rem)]">
           {showProductGrid ? (
             filteredProducts.length > 0 ? (
               filteredProducts.map(product => (
@@ -264,7 +263,7 @@ export default function POS() {
       </div>
 
       {/* Panel derecho: Carrito */}
-      <div className="w-96 bg-white rounded-2xl shadow-sm border border-rosa/20 p-6 flex flex-col">
+      <div className="w-full lg:w-96 bg-white rounded-2xl shadow-sm border border-rosa/20 p-4 lg:p-6 flex flex-col order-2 lg:order-none max-h-[60vh] lg:max-h-full">
         <h3 className="text-lg font-bold text-texto-suave mb-4 flex items-center gap-2">
           <ShoppingCart size={20} /> Carrito ({cart.length})
         </h3>
@@ -413,10 +412,10 @@ export default function POS() {
                 </button>
                 <button
                   onClick={handleCompleteSale}
-                  disabled={paymentMethod === 'efectivo' && (parseFloat(cashReceived) || 0) < total}
+                  disabled={isProcessingSale || (paymentMethod === 'efectivo' && (parseFloat(cashReceived) || 0) < total)}
                   className="flex-1 bg-rosa-oscuro hover:bg-rosa text-white py-3 rounded-full font-medium transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Confirmar venta
+                  {isProcessingSale ? 'Procesando...' : 'Confirmar venta'}
                 </button>
               </div>
             </div>
